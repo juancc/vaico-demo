@@ -3,7 +3,7 @@
 import random
 from itertools import count
 from random import random
-
+import json
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -12,53 +12,62 @@ import matplotlib.dates as mdates
 
 import AImovility.auxfunc.globals as gb
 
+with open('VaicoDemo/config.json', 'r') as f:
+    config = json.load(f)
 
-import VaicoDemo.config as cnf
 
 # plt.style.use('fivethirtyeight')
 
-colors_1 = [(random(),random(),random()) for o in cnf.objects_interest]
-colors_2 = [(random(),random(),random()) for o in cnf.objects_interest]
+COLORS_1 = [(random(),random(),random()) for o in config['objects_interest']]
+COLORS_2 = [(random(),random(),random()) for o in gb.MOVEMENT]
+COLORS_3 = [(random(),random(),random()) for o in gb.DIRECTIONS]
+
 
 def animate(i):
-    data = pd.read_csv('/home/juanc/results/live_plot_data.csv')
+    try:
+        data = pd.read_csv('/home/juanc/results/live_plot_data.csv')
+                
+        # Count on time
+        x_time = data['time']
+        i=0
+        for o in config['objects_interest']:
+            y_values = data[o]
+            axs[0].plot(x_time, y_values, color=COLORS_1[i])
+            i += 1
 
-    # fig, axs = plt.subplots(2)
+        axs[0].legend(config['objects_interest']) 
+        # axs[0].xlabel('Tiempo')
+        # axs[0].ylabel('Número')
+        # axs[0].title('Número objetos en tiempo')
 
-    x_time = data['time']
-    i=0
-    for o in cnf.objects_interest:
-        y_values = data[o]
-        axs[0].plot(x_time, y_values, color=colors_1[i])
-        i += 1
+        # date_formatter = mdates.DateFormatter('%H%M%S')
 
-    axs[0].legend(cnf.objects_interest) 
-    # axs[0].xlabel('Tiempo')
-    # axs[0].ylabel('Número')
-    # axs[0].title('Número objetos en tiempo')
+        # Movement state
+        dir_count = []
+        for d in gb.MOVEMENT:
+            dir_count.append(sum(data[d]))
 
-    date_formatter = mdates.DateFormatter('%H%M%S')
+        axs[1].bar(gb.MOVEMENT, dir_count, color=COLORS_2)
+        axs[1].legend(gb.MOVEMENT, labelcolor=COLORS_2) 
 
-    # Set the major tick formatter to use your date formatter.
-   
-    i=0
-    for d in gb.DIRECTIONS:
-        y_values = data[d]
-        axs[1].plot(x_time, y_values, color=colors_2[i])
-        i += 1
-    axs[1].legend(gb.DIRECTIONS) 
+        # Directions
+        i=0
+        for o in gb.DIRECTIONS:
+            y_values = data[o]
+            axs[2].plot(x_time, y_values, color=COLORS_3[i])
+            i += 1
 
-    # axs[1].xaxis.set_major_formatter(date_formatter)
+        axs[2].legend(gb.DIRECTIONS) 
+        plt.xticks([])
 
 
-    # plt.tight_layout()
+        # plt.tight_layout()
+    except FileNotFoundError:
+        print('live_plot_data not found')
 
 
-fig, axs = plt.subplots(2)
+fig, axs = plt.subplots(3, sharex=False, sharey=False)
 fig.autofmt_xdate()
-
-
-# ani = FuncAnimation(plt.gcf(), animate, 5000)
 ani = FuncAnimation(fig, animate, 5000)
 
 plt.tight_layout()
